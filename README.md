@@ -1,6 +1,6 @@
 # MirrorDataGenerator
 
-MirrorDataGenerator is a python tool that generates synthetic data based on user-specified causal relations among features in the data. It focuses on how features relate with demographic attributes (e.g. gender, race, disability status, etc), which are considered as sensitive information for certain domains (e.g. employment, housing, etc). 
+mirrorGen is an open source tool to generate synthetic data based on a correlation DAG, which describes the relation among the columns in the data. It can be used to produce "dirty" data, mirroring various bias in real life, which can be used in applications, such as classification and ranking tasks [1](https://arxiv.org/abs/2006.08688).
 
 ### Prerequisite for language
 
@@ -15,28 +15,15 @@ Step 2 Unzip the downloaded source file and initiate the python environment.
 
 ```bash
 cd MirrorDataGenerator  # go to the MirrorDataGenerator repository that is just downloaded
-python -m venv MirrDataGen
-source MirrDataGen/bin/activate  # activate the environment for MirrorDataGenerator
+python -m venv venv
+source venv/bin/activate  # activate the environment for MirrorDataGenerator
 pip install -r requirements.txt
 ```
 
-### Run MirrorDataGenerator
+ 
+### Usage of MirrorDataGenerator
 
-Using MirrorDataGenerator to generate a dataset that is specified as in mv_m2.json, use the following command:
-
-```python
-python gen_orig_data.py --data_flag mv --para_file mv_m2.json --run 1
-
-```
-
-Input parameters:
-- data_flag: str, specify the folder name to store the generated CSV files.
-- para_file: str, the file name of the parameter json file. Path need to be included if it is not in the same repository.
-- run: int, the number of datasets to be generated.
-
-Output:
-
-The generated CSV files are stored in "out/DATA_FLAG" with names of "R#.csv".
+We prepared a [demo notebook](Demo_mirror_generator.ipynb) to showcase Mirror Data Generator.
 
 
 ### Methodology 
