@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from bisect import bisect
 from mirror.nodes import CategoricalNode
-from mirror.nodes import GaussianNode
+from mirror.nodes import GaussianNode, ParetoNode
 
 
 # Abstract base class for all nodes
@@ -112,6 +112,8 @@ class CtoN(Edge):
             return np.random.normal(self.category_distribution[x][1], np.sqrt(self.category_distribution[x][2]))
         elif self.category_distribution[x][0] == "Uniform": # NUM
             return np.random.uniform(self.category_distribution[x][1], self.category_distribution[x][2])
+        elif self.category_distribution[x][0] == "Pareto": # NUM
+            return (np.random.pareto(self.category_distribution[x][1]) + 1) * self.category_distribution[x][2]
         else: # ORD
             return np.random.randint(self.category_distribution[x][1], self.category_distribution[x][2])
 
@@ -128,7 +130,7 @@ class CtoN(Edge):
             raise ValueError
 
 if __name__ == '__main__':
-    node_g = CategoricalNode("G", {"M": 0.5, "F": 0.5}, sample_n=1000)
+    node_g = CategoricalNode("G", {"M": 0.5, "F": 0.5}, sample_n=100)
 
     # node_g_m = GaussianNode("M_X", miu=0, var=1)
     # node_g_f = GaussianNode("F_X", miu=0, var=1)
@@ -136,13 +138,23 @@ if __name__ == '__main__':
     df = pd.DataFrame()
     df["G"] = node_g.instantiate_values()
 
-    df["tmp"] = [1 for _ in range(df.shape[0])]
-    df["A"] = np.random.randint(1, 80, size=1000)
+    # df["tmp"] = [1 for _ in range(df.shape[0])]
+    # df["A"] = np.random.randint(1, 80, size=1000)
+
+    edge_g_x = CtoN("G", "X", {"M": ["Gaussian", 3.0, 1.0], "F": ["Gaussian", 2.0, 1.0]})
+    df["X"] = edge_g_x.instantiate_values(df)
+
+    print(df.groupby(by=['G'])['X'].mean())
+    print(df.groupby(by=['G'])['X'].var())
+
+    print(len(df), np.mean(df["X"]), np.var(df["X"]))
+
 
     # print(df[df["G"]=="M"].shape[0], df[df["G"]=="F"].shape[0])
-    # edge_g_x = CtoN("G", "X", 0.5, {"M": ["Gaussian", 0, 1], "F": ["Gaussian", -1, 1]})
+    # edge_g_x = CtoN("G", "X", {"M": ["Gaussian", 0, 1], "F": ["Gaussian", -1, 1]})
     # df["X"] = edge_g_x.instantiate_values(df)
     # print(len(df), np.mean(df["X"]), np.var(df["X"]))
+
     # m_df = df[df["G"] == "M"]
     # f_df = df[df["G"] == "F"]
     # print("M", len(m_df), np.mean(m_df["X"]), np.var(m_df["X"]))
@@ -152,7 +164,7 @@ if __name__ == '__main__':
     # df["D"] = edge_g_d.instantiate_values(df)
     # print(df.groupby(by=["G","D"]).count()/500)
 
-    edge_g_d = NtoC("A", "D", [25, 45, 65], [{"Y": 0.2, "N": 0.8}, {"Y": 0.7, "N": 0.3}, {"Y": 0.6, "N": 0.4}, {"Y": 0.3, "N": 0.7}])
+    # edge_g_d = NtoC("A", "D", [25, 45, 65], [{"Y": 0.2, "N": 0.8}, {"Y": 0.7, "N": 0.3}, {"Y": 0.6, "N": 0.4}, {"Y": 0.3, "N": 0.7}])
     # print(edge_g_d.probability_table)
     # df["D"] = edge_g_d.instantiate_values(df)
     #
@@ -162,5 +174,5 @@ if __name__ == '__main__':
     #     print(cur_df[["D", "tmp"]].groupby(by=["D"]).count()/cur_df.shape[0])
     #     print("\n\n")
 
-    print(edge_g_d.get_type())
+    # print(edge_g_d.get_type())
 

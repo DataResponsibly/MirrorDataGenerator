@@ -8,6 +8,8 @@ class Mirror():
         self.seed = seed
         np.random.seed(seed)
         self.df = None
+        self.cat_cols = []
+        self.num_cols = []
 
     def generate_csv(self, nodes, edges):
         """
@@ -23,6 +25,10 @@ class Mirror():
         """
         df = pd.DataFrame()
         for node_i in nodes:
+            if node_i.type == "NUM":
+                self.num_cols.append(node_i.name)
+            else:
+                self.cat_cols.append(node_i.name)
             if node_i.name in edges.keys(): # have parents
                 print(node_i.name, "with parents")
                 # iterate the incoming edges from its parents
@@ -64,16 +70,16 @@ class Mirror():
                                 gi_probability[node_value_i] = prob_i
                             # all_cpt["".join(gi)] = {x: gi_probability[x]/sum(gi_probability.values()) for x in gi_probability}
                             all_cpt["".join(gi)] = {x: gi_probability[x] for x in gi_probability}
-                        print("New CPT", all_cpt, "\n")
+                        # print("New CPT", all_cpt, "\n")
                         # sample the value of the child node using above new cpt table
                         df[node_i.name] = df["group"].apply(lambda x: np.random.choice(list(all_cpt[x].keys()), p=list(all_cpt[x].values())))
-                        print("Child node is CAT", list(df.columns))
+                        # print("Child node is CAT", list(df.columns))
                     else: # the child node is NUM or ORD
                         df[node_i.name] = 0
                         for incoming_edge_i, weight_i in zip(edges[node_i.name][0], edges[node_i.name][1]):
                             values_i = incoming_edge_i.instantiate_values(df)
                             df[node_i.name] = df[node_i.name] + weight_i * values_i
-                        print("Child node is numerical", list(df.columns))
+                        # print("Child node is numerical", list(df.columns))
 
             else: # no parents
                 # instantiate using its parameters
@@ -84,10 +90,12 @@ class Mirror():
         # return self.df
 
 
-    def save_to_disc(self, file_name_with_path, excluded_cols=[]):
+    def save_to_disc(self, file_name_with_path, excluded_cols=[], shorten_num_cols=True):
         if not os.path.exists(file_name_with_path):
             directory = os.path.dirname(file_name_with_path)
             pathlib.Path(directory).mkdir(parents=True, exist_ok=True)
+        if shorten_num_cols:
+            self.df[self.num_cols] = self.df[self.num_cols].round(3)
         if excluded_cols:
             self.df.drop(columns=excluded_cols).to_csv(file_name_with_path, index=False)
         else:
@@ -97,46 +105,66 @@ class Mirror():
 
 if __name__ == '__main__':
     # initialize nodes
-    total_n = 2000
+    total_n = 100
+    node_g = CategoricalNode("G", {"M": 0.5, "F": 0.5}, sample_n=total_n)
 
-    node_g = CategoricalNode("G", {"M": 0.63, "F": 0.37}, sample_n=total_n)
-    node_r = CategoricalNode("R", {"W", "B"})
-    node_a = OrdinalGlobalNode("A", min=20, max=70)
+    node_u = ParetoNode("U", sample_n=total_n, shape=2.0, scale=1.0) # an unobserved pareto node
+    node_x = ParetoNode("X")
+    node_y = ParetoNode("Y")
 
-    node_x = GaussianNode("X")
-    node_y = GaussianNode("Y")
+    edge_g_x = CtoN("G", "X", {"M": ["Pareto", 3.0, 1.0], "F": ["Pareto", 1.0, 1.0]})
+    edge_g_y = CtoN("G", "Y", {"M": ["Pareto", 3.0, 1.0], "F": ["Pareto", 2.0, 1.0]})
 
-    x_gender_inter = {"M": [0, 0.5], "F": [-1, 1]}
-    y_gender_inter = {"MW": [0, 0.5], "MB": [-1, 1], "FW": [-1, 1], "FB": [-1.1, 1.1]}
-
-    age_race_inter = {"W": [20, 50], "B": [30, 70]}
-
-    # initialize edges
-    edge_g_r = CtoC("G", "R", {"M": {"W": 0.635, "B": 0.365}, "F": {"W": 0.622, "B": 0.378}})
-
-    edge_r_a = CtoN("R", "A", {"W": ["Gaussian", 30, 10], "B": ["Gaussian", 45, 10]})
-
-    edge_g_x = CtoN("G", "X", {"M": ["Gaussian", 0, 0.5], "F": ["Gaussian", -1, 1]})
-    edge_r_x = CtoN("R", "X", {"W": ["Gaussian", 0, 0.5], "B": ["Gaussian", -1, 1]})
-
-    edge_a_x = CtoN("G", "X", {"M": ["Gaussian", 0, 1], "F": ["Gaussian", -1, 1]})
-
-
-
-
-    edge_g_y = CtoN("G", "Y", {"M": ["Gaussian", 0, 0.5], "F": ["Gaussian", -1, 1]})
-    edge_r_y = CtoN("R", "Y", {"W": ["Gaussian", 0, 0.5], "B": ["Gaussian", -1, 1]})
-
+    edge_u_x = NtoNLinear("U", "X")
     edge_x_y = NtoNLinear("X", "Y")
 
     # define DAG
-    nodes = [node_g, node_r, node_x, node_y]
-    edge_relations = {"X": ([edge_g_x, edge_r_x], [0.5, 0.5]),
-                      "Y": ([edge_g_y, edge_r_y, edge_x_y], [0.2, 0.2, 0.6])}
+    nodes = [node_g, node_u, node_x, node_y]
+    edge_relations = {"X": ([edge_g_x, edge_u_x], [0.5, 0.5]),
+                      "Y": ([edge_g_y, edge_x_y], [0.4, 0.6])}
 
     mirror = Mirror(seed=0)
     mirror.generate_csv(nodes, edge_relations)
-    mirror.save_to_disc("../out/test/R0.csv")
+    mirror.save_to_disc("../out/synthetic_data/test/R_pareto.csv")
+
+
+
+    # node_g = CategoricalNode("G", {"M": 0.5, "F": 0.5}, sample_n=total_n)
+    # node_r = CategoricalNode("R", {"W", "B"})
+    #
+    # node_a = OrdinalGlobalNode("A", min=20, max=70)
+
+    # node_x = GaussianNode("X")
+    # node_y = GaussianNode("Y")
+
+    # initialize edges
+    # edge_g_r = CtoC("G", "R", {"M": {"W": 0.635, "B": 0.365}, "F": {"W": 0.622, "B": 0.378}})
+    #
+    # edge_r_a = CtoN("R", "A", {"W": ["Gaussian", 30, 10], "B": ["Gaussian", 45, 10]})
+    #
+    # edge_g_x = CtoN("G", "X", {"M": ["Gaussian", 0, 0.5], "F": ["Gaussian", -1, 1]})
+    #
+    #
+    # edge_r_x = CtoN("R", "X", {"W": ["Gaussian", 0, 0.5], "B": ["Gaussian", -1, 1]})
+    #
+    # edge_a_x = CtoN("G", "X", {"M": ["Gaussian", 0, 1], "F": ["Gaussian", -1, 1]})
+    #
+    #
+    #
+    #
+    # edge_g_y = CtoN("G", "Y", {"M": ["Gaussian", 0, 0.5], "F": ["Gaussian", -1, 1]})
+    # edge_r_y = CtoN("R", "Y", {"W": ["Gaussian", 0, 0.5], "B": ["Gaussian", -1, 1]})
+    #
+    # edge_x_y = NtoNLinear("X", "Y")
+
+    # define DAG
+    # nodes = [node_g, node_r, node_x, node_y]
+    # edge_relations = {"X": ([edge_g_x, edge_r_x], [0.5, 0.5]),
+    #                   "Y": ([edge_g_y, edge_r_y, edge_x_y], [0.2, 0.2, 0.6])}
+
+    # mirror = Mirror(seed=0)
+    # mirror.generate_csv(nodes, edge_relations)
+    # mirror.save_to_disc("../out/synthetic_data/test/R_pareto.csv")
 
 
 

@@ -26,6 +26,23 @@ class Node():
     def get_type(self):
         return "Node"
 
+class ParetoNode(Node):
+    # TODO: update edges for ParetoNode
+    def __init__(self, name, sample_n=2000, shape=1.0, scale=1.0):
+        """
+        :param name: str, the name of the column that is instantiated from this node
+        :param sample_n: int, size of the instantiated samples
+        :param shape: float, shape of the Pareto distribution. Must be positive. The parameter a in numpy.random.pareto.
+        :param scale: float, scale of the Pareto distribution. Must be positive. The parameter m in numpy.random.pareto.
+        """
+        Node.__init__(self, name, "NUM", sample_n)
+        self.distribution = "Pareto"
+        self.parameters = {"shape": shape, "scale": scale}
+
+    def instantiate_values(self):
+        return (np.random.pareto(self.parameters["shape"], self.sample_n) + 1) * self.parameters["scale"]
+
+
 
 # Classes of different types of Nodes
 class GaussianNode(Node):
@@ -132,7 +149,11 @@ if __name__ == '__main__':
     # res = node_y.instantiate_values()
     # print(len(res), len([x for x in res if x < 0.5]), len([x for x in res if x >= 0.5]))
 
-    node_z = GaussianNode("Z", sample_n=100, miu=0, var=1)
-    res = node_z.instantiate_values()
-    print(len(res), len([x for x in res if x < 0]), len([x for x in res if x >= 0]))
+    # node_z = GaussianNode("Z", sample_n=100, miu=0, var=1)
+    # res = node_z.instantiate_values()
+    # print(len(res), len([x for x in res if x < 0]), len([x for x in res if x >= 0]))
 
+    node_z = ParetoNode("X", sample_n=100, shape=2.0, scale=1.0)
+    res = node_z.instantiate_values()
+    # print(res)
+    print(len(res), len([x for x in res if x < 1.0]), len([x for x in res if x >= 1.0]))
