@@ -1,6 +1,6 @@
 # MirrorDataGenerator
 
-mirrorGen is an open source tool to generate synthetic data based on a correlation DAG, which describes the relation among the columns in the data. It can be used to produce "dirty" data, mirroring various bias in real life, which can be used in applications, such as classification and ranking tasks [1](https://arxiv.org/abs/2006.08688).
+mirrorGen is an open source tool to generate synthetic data based on a correlation DAG, which describes the relation among the columns in the data. It can be used to produce "dirty" data, mirroring various bias in real life, for different applications, such as classifications and rankings [1](https://arxiv.org/abs/2006.08688).
 
 ### Prerequisite for language
 
